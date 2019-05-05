@@ -64,11 +64,12 @@ if __name__ == '__main__':
 	tracker = kcftracker.KCFTracker(True, True, True)  # hog, fixed_window, multiscale
 	#if you use hog feature, there will be a short pause after you draw a first boundingbox, that is due to the use of Numba.
 
-	cv2.namedWindow('tracking')
+	cv2.namedWindow('tracking',cv2.WINDOW_NORMAL)
 	cv2.setMouseCallback('tracking',draw_boundingbox)
 
 	while(cap.isOpened()):
 		ret, frame = cap.read()
+		frame = cv2.resize(frame,(192,108))
 		if not ret:
 			break
 
