@@ -35,8 +35,6 @@ def rearrange(img):
 	assert(img.ndim==2)
 	img_ = np.zeros(img.shape, img.dtype)
 	xh, yh = round(img.shape[1]/2), round(img.shape[0]/2)
-	print('heights: ',xh, yh)
-	print('shape: ',img.shape)
 	# First
 	img_[0:yh,0:xh] = img[yh:img.shape[0],xh:img.shape[1]]
 	img_[yh:img.shape[0],xh:img.shape[1]] = img[0:yh,0:xh]
@@ -88,7 +86,6 @@ def subwindow(img, window, borderType=cv2.BORDER_CONSTANT):
 
 	if(border != [0,0,0,0]):
 		res = cv2.copyMakeBorder(res, border[1], border[3], border[0], border[2], borderType)
-	#print('Shape: ',res.shape)
 	return res
 
 def even(number):
@@ -172,12 +169,10 @@ class KCFTracker:
 				caux = real(fftd(caux, True))
 				#caux = rearrange(caux)
 				c += caux
-			print('Created c from zeros')
 		else:
 			c = cv2.mulSpectrums(fftd(x1), fftd(x2), 0, conjB = True)   # 'conjB=' is necessary!
 			c = fftd(c, True)
 			c = real(c)
-			print('Created c from mulSpectrums')
 		c = rearrange(c)
 
 		if(x1.ndim==3 and x2.ndim==3):
@@ -192,7 +187,6 @@ class KCFTracker:
 
 	def getFeatures(self, image, inithann, scale_adjust=1.0):
 		extracted_roi = [0,0,0,0]   #[int,int,int,int]
-		print(self._roi)
 		cx = self._roi[0] + self._roi[2]/2  #float
 		cy = self._roi[1] + self._roi[3]/2  #float
 
@@ -226,21 +220,14 @@ class KCFTracker:
 
 		z = subwindow(image, extracted_roi, cv2.BORDER_REPLICATE)
 		if(z.shape[1]!=self._tmpl_sz[0] or z.shape[0]!=self._tmpl_sz[1]):
-			print(self._tmpl_sz)
 			z = cv2.resize(z, tuple(self._tmpl_sz))
-		print('Shape outside:', z.shape)
 		if(self._hogfeatures):
 			mapp = {'sizeX':0, 'sizeY':0, 'numFeatures':0, 'map':0}
-			print('mapp 1',mapp)
 			mapp = fhog.getFeatureMaps(z, self.cell_size, mapp)
-			print('mapp 2',mapp)
 			mapp = fhog.normalizeAndTruncate(mapp, 0.2)
-			print('mapp 3',mapp)
 			mapp = fhog.PCAFeatureMaps(mapp)
-			print('mapp 4',mapp)
 			self.size_patch = [int(mapp['sizeY']), int(mapp['sizeX']), int(mapp['numFeatures'])]
 			FeaturesMap = mapp['map'].reshape((self.size_patch[0]*self.size_patch[1], self.size_patch[2])).T   # (size_patch[2], size_patch[0]*size_patch[1])
-			print('size_patch from hog features')
 		else:
 			if(z.ndim==3 and z.shape[2]==3):
 				FeaturesMap = cv2.cvtColor(z, cv2.COLOR_BGR2GRAY)   # z:(size_patch[0], size_patch[1], 3)  FeaturesMap:(size_patch[0], size_patch[1])   #np.int8  #0~255
@@ -248,7 +235,6 @@ class KCFTracker:
 				FeaturesMap = z   #(size_patch[0], size_patch[1]) #np.int8  #0~255
 			FeaturesMap = FeaturesMap.astype(np.float32) / 255.0 - 0.5
 			self.size_patch = [z.shape[0], z.shape[1], 1]
-			print('size_patch NOT from hog features')
 
 		if(inithann):
 			self.createHanningMats()  # createHanningMats need size_patch

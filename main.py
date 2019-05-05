@@ -7,7 +7,9 @@ from time import time
 import kcftracker
 
 parser = argparse.ArgumentParser(description='Introduce arguments to run the tracker')
-parser.add_argument('-i', '--input', type = str, default = '/home/alvaro/trafficFlow/trialVideos/sar.mp4', help = 'Introduce the input video to analyse')
+parser.add_argument('-i', '--input',  type = str, default = None, help = 'Introduce the input video to analyse')
+parser.add_argument('-W', '--width',  type = int, default = 0, help = 'Introduce the desired frame width')
+parser.add_argument('-H', '--height', type = int, default = 0, help = 'Introduce the desired frame height')
 args = parser.parse_args()
 
 selectingObject = False
@@ -21,9 +23,6 @@ duration = 0.01
 # mouse callback function
 def draw_boundingbox(event, x, y, flags, param):
 	global selectingObject, initTracking, onTracking, ix, iy, cx,cy, w, h
-	# Make sure the inputs are even:
-	x = int(x)
-	y = int(y)
 	
 	if event == cv2.EVENT_LBUTTONDOWN:
 		selectingObject = True
@@ -69,7 +68,10 @@ if __name__ == '__main__':
 
 	while(cap.isOpened()):
 		ret, frame = cap.read()
-		frame = cv2.resize(frame,(192,108))
+
+		# If stated we change the working frame resolution
+		if args.width and args.height:
+			frame = cv2.resize(frame,(args.width,args.height))
 		if not ret:
 			break
 
