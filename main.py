@@ -45,7 +45,7 @@ def draw_boundingbox(event, x, y, flags, param):
 	elif event == cv2.EVENT_RBUTTONDOWN:
 		onTracking = False
 		if(w>0):
-			ix, iy = x-w/2, y-h/2
+			ix, iy = int(x-w/2), int(y-h/2)
 			initTracking = True
 
 
@@ -76,8 +76,10 @@ if __name__ == '__main__':
 			break
 
 		if(selectingObject):
+			print((ix,iy), (cx,cy))
 			cv2.rectangle(frame,(ix,iy), (cx,cy), (0,255,255), 1)
 		elif(initTracking):
+			print((ix,iy), (ix+w,iy+h))
 			cv2.rectangle(frame,(ix,iy), (ix+w,iy+h), (0,255,255), 2)
 
 			tracker.init([ix,iy,w,h], frame)
@@ -92,8 +94,8 @@ if __name__ == '__main__':
 			boundingbox = list(map(int, boundingbox))
 			cv2.rectangle(frame,(boundingbox[0],boundingbox[1]), (boundingbox[0]+boundingbox[2],boundingbox[1]+boundingbox[3]), (0,255,255), 1)
 			
-			duration = 0.8*duration + 0.2*(t1-t0)
-			#duration = t1-t0
+			#duration = 0.8*duration + 0.2*(t1-t0)
+			duration = t1-t0
 			cv2.putText(frame, 'FPS: '+str(1/duration)[:4].strip('.'), (8,20), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,0,255), 2)
 
 		cv2.imshow('tracking', frame)
