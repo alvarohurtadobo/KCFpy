@@ -33,6 +33,6 @@ def rectangle_already_tracked(rectangles, rectangle):
     The rectangle comes in the form x, y, w, h
     """
     for current_rectangle in rectangles:
-        if rectangle_percentage_coincidence(current_rectangle, rectangle) > 0.7:
+        if rectangle_percentage_coincidence(current_rectangle, rectangle) > 0.6:
             return True 
     return False

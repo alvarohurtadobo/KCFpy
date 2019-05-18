@@ -7,48 +7,18 @@ from time import time
 from lib.vehicle import Vehicle
 from lib.background import Background
 
+from lib.tools import rectangle_percentage_coincidence
+
 parser = argparse.ArgumentParser(description = 'Introduce arguments to run the tracker')
 parser.add_argument('-i', '--input',  type = str, default = None, help = 'Introduce the input video to analyse')
 parser.add_argument('-W', '--width',  type = int, default = 0, help = 'Introduce the desired frame width')
 parser.add_argument('-H', '--height', type = int, default = 0, help = 'Introduce the desired frame height')
 args = parser.parse_args()
 
-selectingObject = False
-initTracking = False
-onTracking = False
 ix, iy, cx, cy = -1, -1, -1, -1
 w, h = 0, 0
 
 duration = 0.01
-
-# mouse callback function
-def draw_boundingbox(event, x, y, flags, param):
-	global selectingObject, initTracking, onTracking, ix, iy, cx,cy, w, h
-	
-	if event == cv2.EVENT_LBUTTONDOWN:
-		selectingObject = True
-		onTracking = False
-		ix, iy = x, y
-		cx, cy = x, y
-	
-	elif event == cv2.EVENT_MOUSEMOVE:
-		cx, cy = x, y
-	
-	elif event == cv2.EVENT_LBUTTONUP:
-		selectingObject = False
-		if(abs(x-ix)>10 and abs(y-iy)>10):
-			w, h = abs(x - ix), abs(y - iy)
-			ix, iy = min(x, ix), min(y, iy)
-			initTracking = True
-		else:
-			onTracking = False
-	
-	elif event == cv2.EVENT_RBUTTONDOWN:
-		onTracking = False
-		if(w>0):
-			ix, iy = int(x-w/2), int(y-h/2)
-			initTracking = True
-
 
 
 if __name__ == '__main__':
@@ -61,19 +31,19 @@ if __name__ == '__main__':
 		else:
 			cap = cv2.VideoCapture(args.input)
 
-	myVehicles = [Vehicle()]
-	#tracker = kcftracker.KCFTracker(True, True, True)  # hog, fixed_window, multiscale
+	myVehicles = [Vehicle(),Vehicle()]
 	#if you use hog feature, there will be a short pause after you draw a first boundingbox, that is due to the use of Numba.
 	ret, frame = cap.read()
+	#frame = cv2.resize(frame,(80,60))
 	myBackground = Background(frame, 4, False)
 
 	cv2.namedWindow('tracking',cv2.WINDOW_NORMAL)
-	cv2.setMouseCallback('tracking',draw_boundingbox)
+
+	auxiliar_time = time()
 
 	while(cap.isOpened()):
 		ret, frame = cap.read()
 		new_objects = myBackground.detect(frame)
-		print('Detected {} objects'.format(len(new_objects)))
 		sure_objects = [my_object['box'] for my_object in new_objects]
 
 		most_objects = sure_objects
@@ -93,53 +63,39 @@ if __name__ == '__main__':
 		if not ret:
 			break
 
+		# Update
+		myVehicles[0].update(frame)
+		myVehicles[1].update(frame)
+		if rectangle_percentage_coincidence(myVehicles[0].tracked_object_position,myVehicles[1].tracked_object_position) > 0.8:
+			if myVehicles[1].area > myVehicles[0].area:
+				myVehicles[1].kill()
+			else:
+				myVehicles[0].kill()
+		# Plot updated objects
+		cv2.rectangle(frame,myVehicles[0].plot_point1, myVehicles[0].plot_point2, (0,0,255), 3)
+		cv2.putText(frame, 'ID: {} left {}, {}%'.format(myVehicles[0].vehicle_id,myVehicles[0]._life_span,int(100*myVehicles[0].rectangle_coincidence)), myVehicles[0].plot_point1, cv2.FONT_HERSHEY_SIMPLEX, 0.6, (50,50,50), 2)
+		cv2.rectangle(frame,myVehicles[1].plot_point1, myVehicles[1].plot_point2, (0,255,0), 3)
+		cv2.putText(frame, 'ID: {} left {}, {}%'.format(myVehicles[1].vehicle_id,myVehicles[1]._life_span,int(100*myVehicles[1].rectangle_coincidence)), myVehicles[1].plot_point1, cv2.FONT_HERSHEY_SIMPLEX, 0.6, (50,50,50), 2)
+
 		if most_objects != []:
-			remaining_rectangles, dropped_rectangles = myVehicles[0].purge_rectangles(most_objects)
-			for rectangle in remaining_rectangles:
-				ix, iy, w, h = rectangle
-				#cv2.rectangle(frame,(ix,iy), (ix+w,iy+h), (200,200,200), 2)
-				print('Rectangle problem: ',rectangle)
-				cv2.rectangle(frame,(ix,iy), (ix+w,iy+h), (0,255,255), 1)
-				myVehicles[0].set_point([ix,iy,w,h], frame)
-				#tracker.init([ix,iy,w,h], frame)
-				print('Not tracked')
-				onTracking = True
+			# Feed and Purge
+			remaining_rectangles = myVehicles[0].purge_rectangles(most_objects, frame)
+			remaining_rectangles = myVehicles[1].purge_rectangles(remaining_rectangles, frame)
 
-			"""
-			for rectangle in most_objects:
-				ix, iy, w, h = rectangle
-				#cv2.rectangle(frame,(ix,iy), (ix+w,iy+h), (200,200,200), 2)
+			if len(remaining_rectangles)>1:
+				biggest_rectangle = remaining_rectangles[0]
+				if (myVehicles[0].tracking == False):
+					myVehicles[0].track_new_object(list(biggest_rectangle), frame)
+				if (myVehicles[1].tracking == False):
+					myVehicles[1].track_new_object(list(biggest_rectangle), frame)
 				
-				if srectangle_already_tracked([tracker._roi],rectangle):
-					print('Already tracked',[tracker._roi],rectangle)
-				else:
-					print('Rectangle problem: ',rectangle)
-					cv2.rectangle(frame,(ix,iy), (ix+w,iy+h), (0,255,255), 1)
-					tracker.init([ix,iy,w,h], frame)
-					print('Not tracked')
-					onTracking = True
-			"""
+				for rectangle in remaining_rectangles:
+					ix, iy, w, h = rectangle	
+					cv2.rectangle(frame,(ix,iy), (ix+w,iy+h), (220,220,220), 2)
 
-		if(selectingObject):
-			#cv2.rectangle(frame,(ix,iy), (cx,cy), (0,255,255), 1)
-			pass
-		elif(initTracking):
-			#cv2.rectangle(frame,(ix,iy), (ix+w,iy+h), (0,255,255), 1)
-			#tracker.init([ix,iy,w,h], frame)
-			initTracking = False
-			onTracking = True
-		elif(onTracking):
-			t0 = time()
-			boundingbox = myVehicles[0].update(frame)
-			print('Updated')
-			t1 = time()
-
-			boundingbox = list(map(int, boundingbox))
-			cv2.rectangle(frame,(boundingbox[0],boundingbox[1]), (boundingbox[0]+boundingbox[2],boundingbox[1]+boundingbox[3]), (0,0,255), 3)
-			
-			#duration = 0.8*duration + 0.2*(t1-t0)
-			duration = t1-t0
-			cv2.putText(frame, 'FPS: '+str(1/duration)[:4].strip('.'), (8,20), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,0,255), 2)
+		period = 1/(time() - auxiliar_time)
+		cv2.putText(frame, 'FPS: {0:.2f}'.format(period), (8,20), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,0,255), 2)
+		auxiliar_time = time()
 
 		cv2.imshow('tracking', frame)
 		c = cv2.waitKey(1) & 0xFF

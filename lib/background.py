@@ -22,8 +22,8 @@ class Background():
 
         self.w_min = int(0.4*self._width//self.scaleFactor//2)
         self.h_min = int(0.4*self._height//self.scaleFactor//2)
-        self.h_max = int(1.4*self._width//self.scaleFactor//2)
-        self.w_max = int(1.4*self._height//self.scaleFactor//2)
+        self.h_max = int(1.1*self._width//self.scaleFactor//2)
+        self.w_max = int(1.1*self._height//self.scaleFactor//2)
 
         self.optimal_step = 1
 
@@ -63,9 +63,14 @@ class Background():
                 #    self.low_resolution_image = cv2.rectangle(self.low_resolution_image, (x,y), (x+w,y+h), (255,255,255), 2, -1)
             else:
                 confidence = 0.3
-            
+        rectangles = sorted(rectangles, key = inverseArea)
         return rectangles
 
     def get_low_resolution_image(self):
         return self.low_resolution_image
+
+def inverseArea(rectangle):
+    # Returns the inverse of the area of a rectangle to let sort order from minimum (max area) to maximum (min area)
+    return 1/(rectangle['box'][2]*rectangle['box'][3])
+
 
