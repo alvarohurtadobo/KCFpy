@@ -4,10 +4,8 @@ import argparse
 import numpy as np 
 from time import time
 
-from background import Background
-from tools import rectangle_already_tracked
-
-import kcftracker
+from lib.vehicle import Vehicle
+from lib.background import Background
 
 parser = argparse.ArgumentParser(description = 'Introduce arguments to run the tracker')
 parser.add_argument('-i', '--input',  type = str, default = None, help = 'Introduce the input video to analyse')
@@ -56,17 +54,18 @@ def draw_boundingbox(event, x, y, flags, param):
 if __name__ == '__main__':
 	
 	if args.input == None:
-		cap = cv2.VideoCapture('/home/alvaro/trafficFlow/trialVideos/sar.mp4')
+		cap = cv2.VideoCapture('/home/alvaro/test/sar.mp4')
 	else:
 		if(args.input.isdigit()):
 			cap = cv2.VideoCapture(int(args.input))
 		else:
 			cap = cv2.VideoCapture(args.input)
 
-	tracker = kcftracker.KCFTracker(True, True, True)  # hog, fixed_window, multiscale
+	myVehicles = [Vehicle()]
+	#tracker = kcftracker.KCFTracker(True, True, True)  # hog, fixed_window, multiscale
 	#if you use hog feature, there will be a short pause after you draw a first boundingbox, that is due to the use of Numba.
 	ret, frame = cap.read()
-	myBackground = Background(frame)
+	myBackground = Background(frame, 4, False)
 
 	cv2.namedWindow('tracking',cv2.WINDOW_NORMAL)
 	cv2.setMouseCallback('tracking',draw_boundingbox)
@@ -74,7 +73,8 @@ if __name__ == '__main__':
 	while(cap.isOpened()):
 		ret, frame = cap.read()
 		new_objects = myBackground.detect(frame)
-		sure_objects = [my_object['box'] for my_object in new_objects if my_object['confidence']>0.6]
+		print('Detected {} objects'.format(len(new_objects)))
+		sure_objects = [my_object['box'] for my_object in new_objects]
 
 		most_objects = sure_objects
 		"""
@@ -94,32 +94,48 @@ if __name__ == '__main__':
 			break
 
 		if most_objects != []:
+			remaining_rectangles, dropped_rectangles = myVehicles[0].purge_rectangles(most_objects)
+			for rectangle in remaining_rectangles:
+				ix, iy, w, h = rectangle
+				#cv2.rectangle(frame,(ix,iy), (ix+w,iy+h), (200,200,200), 2)
+				print('Rectangle problem: ',rectangle)
+				cv2.rectangle(frame,(ix,iy), (ix+w,iy+h), (0,255,255), 1)
+				myVehicles[0].set_point([ix,iy,w,h], frame)
+				#tracker.init([ix,iy,w,h], frame)
+				print('Not tracked')
+				onTracking = True
+
+			"""
 			for rectangle in most_objects:
-				cv2.rectangle(frame,(ix,iy), (ix+w,iy+h), (0,255,255), 2)
-				if rectangle_already_tracked([tracker._roi],rectangle):
+				ix, iy, w, h = rectangle
+				#cv2.rectangle(frame,(ix,iy), (ix+w,iy+h), (200,200,200), 2)
+				
+				if srectangle_already_tracked([tracker._roi],rectangle):
 					print('Already tracked',[tracker._roi],rectangle)
 				else:
-					ix, iy, w, h = rectangle
 					print('Rectangle problem: ',rectangle)
-					cv2.rectangle(frame,(ix,iy), (ix+w,iy+h), (0,255,255), 4)
+					cv2.rectangle(frame,(ix,iy), (ix+w,iy+h), (0,255,255), 1)
 					tracker.init([ix,iy,w,h], frame)
 					print('Not tracked')
 					onTracking = True
+			"""
 
 		if(selectingObject):
-			cv2.rectangle(frame,(ix,iy), (cx,cy), (0,255,255), 1)
+			#cv2.rectangle(frame,(ix,iy), (cx,cy), (0,255,255), 1)
+			pass
 		elif(initTracking):
-			cv2.rectangle(frame,(ix,iy), (ix+w,iy+h), (0,255,255), 2)
-			tracker.init([ix,iy,w,h], frame)
+			#cv2.rectangle(frame,(ix,iy), (ix+w,iy+h), (0,255,255), 1)
+			#tracker.init([ix,iy,w,h], frame)
 			initTracking = False
 			onTracking = True
 		elif(onTracking):
 			t0 = time()
-			boundingbox = tracker.update(frame)
+			boundingbox = myVehicles[0].update(frame)
+			print('Updated')
 			t1 = time()
 
 			boundingbox = list(map(int, boundingbox))
-			cv2.rectangle(frame,(boundingbox[0],boundingbox[1]), (boundingbox[0]+boundingbox[2],boundingbox[1]+boundingbox[3]), (0,255,255), 1)
+			cv2.rectangle(frame,(boundingbox[0],boundingbox[1]), (boundingbox[0]+boundingbox[2],boundingbox[1]+boundingbox[3]), (0,0,255), 3)
 			
 			#duration = 0.8*duration + 0.2*(t1-t0)
 			duration = t1-t0

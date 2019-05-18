@@ -20,8 +20,8 @@ class Background():
         #Auxiliar parameters
         self.fgbgNew = cv2.createBackgroundSubtractorMOG2()
 
-        self.w_min = int(0.6*self._width//self.scaleFactor//2)
-        self.h_min = int(0.6*self._height//self.scaleFactor//2)
+        self.w_min = int(0.4*self._width//self.scaleFactor//2)
+        self.h_min = int(0.4*self._height//self.scaleFactor//2)
         self.h_max = int(1.4*self._width//self.scaleFactor//2)
         self.w_max = int(1.4*self._height//self.scaleFactor//2)
 
@@ -44,8 +44,8 @@ class Background():
         fgmask = self.fgbgNew.apply(self.imagenActual)
         
         #fgmask = cv2.morphologyEx(fgmask, cv2.MORPH_OPEN, self.kernel)
-        #if self.show:
-        #    cv2.imshow('Mask', fgmask)
+        if self.show:
+            cv2.imshow('Mask', fgmask)
         if cv2.__version__.startswith("3."):
             _, contours, _ = cv2.findContours(fgmask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_TC89_L1)  #,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
         else:
@@ -58,13 +58,12 @@ class Background():
             # We add to our list the appropriate sizes only
             if ((h > self.h_min) or (w > self.w_min)) and ((h < self.h_max) or (w < self.w_max)):
                 confidence = 0.9
-                #rectangles.append((self.scaleFactor*x, self.scaleFactor*y, self.scaleFactor*w, self.scaleFactor*h))
+                rectangles.append({'box': [self.scaleFactor*x, self.scaleFactor*y, self.scaleFactor*w, self.scaleFactor*h], 'confidence': confidence, 'keypoints': {'mid_point': (x+w//2, y+h//2), 'plate': (x+w//2, y+3//4*h)}})
                 #if self.show:
                 #    self.low_resolution_image = cv2.rectangle(self.low_resolution_image, (x,y), (x+w,y+h), (255,255,255), 2, -1)
             else:
                 confidence = 0.3
-
-            rectangles.append({'box': [x, y, x+w, y+h], 'confidence': confidence, 'keypoints': {'mid_point': (x+w//2, y+h//2), 'plate': (x+w//2, y+3//4*h)}})
+            
         return rectangles
 
     def get_low_resolution_image(self):
