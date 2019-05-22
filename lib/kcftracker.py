@@ -35,6 +35,7 @@ def rearrange(img):
 	assert(img.ndim==2)
 	img_ = np.zeros(img.shape, img.dtype)
 	xh, yh = round(img.shape[1]/2), round(img.shape[0]/2)
+	#print('This is the problem, ',xh, yh,' shape ',img.shape)
 	# First
 	img_[0:yh,0:xh] = img[yh:img.shape[0],xh:img.shape[1]]
 	img_[yh:img.shape[0],xh:img.shape[1]] = img[0:yh,0:xh]
@@ -170,6 +171,8 @@ class KCFTracker:
 				#caux = rearrange(caux)
 				c += caux
 		else:
+			#print('Array len: ',x1.shape,x2.shape)
+			#print(type(x1), ' Type:',x1)
 			c = cv2.mulSpectrums(fftd(x1), fftd(x2), 0, conjB = True)   # 'conjB=' is necessary!
 			c = fftd(c, True)
 			c = real(c)
@@ -189,6 +192,7 @@ class KCFTracker:
 		extracted_roi = [0,0,0,0]   #[int,int,int,int]
 		cx = self._roi[0] + self._roi[2]/2  #float
 		cy = self._roi[1] + self._roi[3]/2  #float
+		#print('Central point', cx, cy)
 
 		if(inithann):
 			padded_w = self._roi[2] * self.padding
@@ -213,12 +217,18 @@ class KCFTracker:
 				self._tmpl_sz[0] = int(int(self._tmpl_sz[0]) / 2 * 2)
 				self._tmpl_sz[1] = int(int(self._tmpl_sz[1]) / 2 * 2)
 
+			# Correcting canvas size
+			self._tmpl_sz[0] = 2*int(self._tmpl_sz[0]//2)
+			self._tmpl_sz[1] = 2*int(self._tmpl_sz[1]//2)
+
 		extracted_roi[2] = int(scale_adjust * self._scale * self._tmpl_sz[0])
 		extracted_roi[3] = int(scale_adjust * self._scale * self._tmpl_sz[1])
 		extracted_roi[0] = int(cx - extracted_roi[2]/2)
 		extracted_roi[1] = int(cy - extracted_roi[3]/2)
 
 		z = subwindow(image, extracted_roi, cv2.BORDER_REPLICATE)
+		#print('z:',z.shape)
+		#print('reshape to ',self._tmpl_sz)
 		if(z.shape[1]!=self._tmpl_sz[0] or z.shape[0]!=self._tmpl_sz[1]):
 			z = cv2.resize(z, tuple(self._tmpl_sz))
 		if(self._hogfeatures):
@@ -238,8 +248,10 @@ class KCFTracker:
 
 		if(inithann):
 			self.createHanningMats()  # createHanningMats need size_patch
-
+		#print('hann', self.hann.shape)
+		#print('Before', FeaturesMap.shape)
 		FeaturesMap = self.hann * FeaturesMap
+		#print('Output', FeaturesMap.shape)
 		return FeaturesMap
 
 	def detect(self, z, x):
@@ -268,6 +280,7 @@ class KCFTracker:
 
 
 	def init(self, roi, image):
+		# Convert the list of numbers into a list of floats:
 		self._roi = list(map(float, roi))
 		assert(roi[2]>0 and roi[3]>0)
 		self._tmpl = self.getFeatures(image, 1)

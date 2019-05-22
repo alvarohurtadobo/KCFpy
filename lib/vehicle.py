@@ -20,7 +20,7 @@ class Vehicle():
         self.rectangle_coincidence = 0
         self.area = 0
         self._life_span = Vehicle.initial_life_span            # 10 frames update and delete
-        self.tracker = kcftracker.KCFTracker(True, True, True)  # hog, fixed_window, multiscale
+        self.tracker = kcftracker.KCFTracker(False, True, True)  # hog, fixed_window, multiscale
 
     def track_new_object(self, point_list, frame):
         # When tracking new objects:
@@ -29,6 +29,7 @@ class Vehicle():
         Vehicle.last_vehicle_id = Vehicle.last_vehicle_id + 1
         #print('Creating new object {}'.format(self.vehicle_id))
         # Init points to track
+        #print('Core problem: ',point_list)
         self.tracker.init(point_list, frame)
         # Increase life span to origin
         self._life_span = Vehicle.initial_life_span
