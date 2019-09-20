@@ -24,7 +24,7 @@ duration = 0.01
 if __name__ == '__main__':
 	
 	if args.input == None:
-		cap = cv2.VideoCapture('/home/alvaro/test/sar.mp4')
+		cap = cv2.VideoCapture('/home/alvaro/projects/python/test/sar.mp4')
 	else:
 		if(args.input.isdigit()):
 			cap = cv2.VideoCapture(int(args.input))
@@ -32,6 +32,7 @@ if __name__ == '__main__':
 			cap = cv2.VideoCapture(args.input)
 
 	myVehicles = [Vehicle(),Vehicle()]
+
 	#if you use hog feature, there will be a short pause after you draw a first boundingbox, that is due to the use of Numba.
 	ret, frame = cap.read()
 	#frame = cv2.resize(frame,(80,60))
@@ -77,11 +78,11 @@ if __name__ == '__main__':
 		cv2.rectangle(frame,myVehicles[1].plot_point1, myVehicles[1].plot_point2, (0,255,0), 3)
 		cv2.putText(frame, 'ID: {} left {}, {}%'.format(myVehicles[1].vehicle_id,myVehicles[1]._life_span,int(100*myVehicles[1].rectangle_coincidence)), myVehicles[1].plot_point1, cv2.FONT_HERSHEY_SIMPLEX, 0.6, (50,50,50), 2)
 
+
+		remaining_rectangles = myVehicles[0].purge_rectangles(most_objects, frame)
+		remaining_rectangles = myVehicles[1].purge_rectangles(remaining_rectangles, frame)
 		if most_objects != []:
 			# Feed and Purge
-			remaining_rectangles = myVehicles[0].purge_rectangles(most_objects, frame)
-			remaining_rectangles = myVehicles[1].purge_rectangles(remaining_rectangles, frame)
-
 			if len(remaining_rectangles)>1:
 				biggest_rectangle = remaining_rectangles[0]
 				if (myVehicles[0].tracking == False):

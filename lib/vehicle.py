@@ -1,4 +1,5 @@
 #! /home/alvaro/virtualenv/lucam/bin/python3.6
+from time import time
 import lib.kcftracker as kcftracker
 from lib.tools import rectangle_percentage_coincidence
 
@@ -6,7 +7,8 @@ class Vehicle():
     # Class variables
     last_vehicle_id = 0
     all_used = False
-    initial_life_span = 45
+    initial_life_span = 30
+    last_update_time = time()
 
     def __init__(self):
         # Declare variables to be used
@@ -35,6 +37,7 @@ class Vehicle():
         self._life_span = Vehicle.initial_life_span
         # Set status to tracking
         self.tracking = True
+        print("Tracking new object {}".format(self.vehicle_id))
 
     def update(self, frame):
         # Update current tracker according to current frame
@@ -55,26 +58,32 @@ class Vehicle():
         # The object drops the one rectangle with the biggest area:
         # The list of remaining rectangles stay
         self.external_object_position = [0,0,0,0]
+        print("Received list: {}".format(remaining_rectangles))
+        self._life_span -= 1
         new_remaining_rectangles = []
         for index in range(len(remaining_rectangles)):
             rectangle = remaining_rectangles[index]
             #if rectangle_already_tracked([self.tracker._roi],rectangle):
+            print("Comparing {} with {}".format(self.tracker._roi, rectangle))
             self.rectangle_coincidence = rectangle_percentage_coincidence(self.tracker._roi, rectangle)
             if self.rectangle_coincidence > 0.6:
                 self.external_object_position = rectangle
                 self._life_span += 1
-                #self._life_span = Vehicle.initial_life_span
-                if self.rectangle_coincidence > 0.9:
+                if self.rectangle_coincidence > 0.8:
+                    # If the coincidence is high enough we reset the object
+                    print("Rectangle {} matches".format(rectangle))
+                    self._life_span = Vehicle.initial_life_span
                     self.tracker.init(self.external_object_position, frame)                    
                 #del remaining_rectangles[index]
                 # break here to only drop one object at a time
             elif self.rectangle_coincidence < 0.2:
                 new_remaining_rectangles.append(rectangle)
-                self._life_span -= 1
 
         if self._life_span <= 0:
             self.kill()
             #print('Removing object {}'.format(self.vehicle_id))
+
+        print("Returned list: {}".format(new_remaining_rectangles))
  
         return new_remaining_rectangles
 
@@ -82,5 +91,7 @@ class Vehicle():
         self._life_span = 0
         self.tracker._roi = (0.0,0.0,0.0,0.0)
         self.tracking = False
+        if self.tracking:
+            print("Stopped tracking object {}".format(self.vehicle_id))
 
 
