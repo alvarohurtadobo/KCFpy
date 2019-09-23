@@ -1,7 +1,7 @@
 import cv2
 import numpy as np 
 
-import lib.fhog as fhog
+#import lib.fhog as fhog
 
 # ffttools
 def fftd(img, backwards=False):	
