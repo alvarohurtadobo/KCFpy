@@ -3,7 +3,14 @@ Some tools
 
 """
 
-def rectangle_percentage_coincidence(reference_rectangle, rectangle):
+def rectangle_percentage_coincidence(rectangle0, rectangle1):
+    if rectangle1[2]*rectangle1[3] > rectangle0[2]*rectangle0[3]:
+        reference_rectangle = rectangle0
+        rectangle = rectangle1
+    else:
+        reference_rectangle = rectangle1
+        rectangle = rectangle0
+
     # The rectangles must be in the form: x, y, w, h
     # The next three lines calculate the overlap area between the two rectangles:
     # Reference rectangle:
@@ -20,6 +27,7 @@ def rectangle_percentage_coincidence(reference_rectangle, rectangle):
         return 0
     coincidence = overlapArea/reference_area
     #print('Overlap area: {}/ Reference: {} = {}'.format(overlapArea,reference_area,coincidence))
+    print("Ref Area: {}, Coincidence: {}".format(reference_area,coincidence))
     return coincidence
 
 def tracker_already_tracked(trackers, rectangle):
